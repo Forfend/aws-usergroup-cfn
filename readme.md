@@ -20,12 +20,12 @@ Go to the project directory
 Create stacks from templates
 
 ```bash
-  aws cloudformation create-stack --stack-name example-stack --template-body file://cfn/exampple.yaml 
+  aws cloudformation create-stack --stack-name example-stack --template-body file://cfn/exampple.yaml --parameters file://cfn/parameters/example-parameters.json
 ```
 Update stack
 
 ```bash
-  aws cloudformation create-stack --stack-name example-stack --template-body file://cfn/exampple.yaml
+  aws cloudformation create-stack --stack-name example-stack --template-body file://cfn/exampple.yaml --parameters file://cfn/parameters/example-parameters.json
 ```
 
 

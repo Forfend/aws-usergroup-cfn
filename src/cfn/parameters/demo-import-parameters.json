@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "ExportStackName",
+    "ParameterValue": "VPC_CFN"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t2.micro"
+  }
+]

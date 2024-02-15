@@ -1,0 +1,14 @@
+[
+  {
+    "ParameterKey": "ELBName",
+    "ParameterValue": "DemoLoadBalancer"
+  },
+  {
+    "ParameterKey": "ExportStackName",
+    "ParameterValue": "VPC-CFN"
+  },
+  {
+    "ParameterKey": "ExportStackName",
+    "ParameterValue": "VPC-CFN"
+  }
+]

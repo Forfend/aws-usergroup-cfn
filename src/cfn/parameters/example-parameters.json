@@ -1,0 +1,23 @@
+[
+  {
+    "ParameterKey": "Env",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "InstanceName",
+    "ParameterValue": "AWSomeInstance"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t2.micro"
+  },
+  {
+    "ParameterKey": "InstanceTags",
+    "ParameterValue": "demo, cfn"
+  },
+  {
+    "ParameterKey": "DbName",
+    "ParameterValue": "MyDbInstance"
+  }
+]
+  
