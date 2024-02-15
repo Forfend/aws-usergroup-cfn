@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Nested stack example
+
+Parameters:
+  ELBName:
+    Type: String
+    Default: DemoLoadBalancer
+  ExportStackName:
+    Type: String
+    Default: 'VPC-CFN'
+  TargetGroup:
+    Description: ALB target group
+    Type: String
+
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Ref ELBName
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - Fn::ImportValue: !Sub "${ExportStackName}-PublicSubnetId"
+        - Fn::ImportValue: !Sub "${ExportStackName}-PublicSubnetId2"
+      SecurityGroups:
+        - Fn::ImportValue: !Sub "${ExportStackName}-SecurityGroupId"
+      LoadBalancerAttributes:
+        - Key: 'idle_timeout.timeout_seconds'
+          Value: 60
+
+  ELBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+Outputs:
+  LoadBalancerDNS:
+    Description: ELB DNS Name
+    Value: !GetAtt LoadBalancer.DNSName
+  LoadBalancerArn:
+    Description: ELB ARN
+    Value: !Ref LoadBalancer

@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Parent stack
+
+Parameters:
+  TargetGroupName:
+    Description: Demo target group name
+    Type: String
+    Default: DemoTargetGroup
+  ExportStackName:
+    Type: String
+    Default: 'VPC-CFN'
+
+Resources:
+  ELBNestedStack:
+    DependsOn: DemoTargetGroup
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 'https://oonuf-demo-bucket.s3.eu-central-1.amazonaws.com/nested_cfn.yaml'
+      Parameters:
+        TargetGroup: !Ref DemoTargetGroup
+
+  DemoTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Ref TargetGroupName
+      Port: 80
+      Protocol: HTTP
+      VpcId:
+        Fn::ImportValue: !Sub "${ExportStackName}-VpcId"
+      HealthCheckEnabled: true
+      HealthCheckPath: '/'
+      HealthCheckPort: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      TargetType: instance
+  
+  DemoLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: 'DemoLaunchTemplate'
+      LaunchTemplateData:
+        ImageId: 'ami-02fe204d17e0189fb'
+        InstanceType: 't2.micro'
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${ExportStackName}-SecurityGroupId"
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            sudo yum update -y
+            sudo yum install -y httpd
+            sudo systemctl start httpd
+            sudo systemctl enable httpd
+            sudo echo 'Hello '$(hostname -f)'' > /var/www/html/index.html
+  
+  DemoASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref DemoLaunchTemplate
+        Version: !GetAtt DemoLaunchTemplate.LatestVersionNumber
+      MaxSize: 3
+      MinSize: 1
+      DesiredCapacity: 2
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
+      TargetGroupARNs:
+        - !Ref DemoTargetGroup
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub "${ExportStackName}-PublicSubnetId"
+        - Fn::ImportValue: !Sub "${ExportStackName}-PublicSubnetId2"
+
+Outputs:
+  TargetGroupARN:
+    Description: Target group arn
+    Value: !Ref DemoTargetGroup
+  ELBDNS:
+    Description: Elastic LoadBalancer DNS
+    Value: !GetAtt ELBNestedStack.Outputs.LoadBalancerDNS

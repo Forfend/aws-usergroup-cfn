@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This is basic structure of all the CloudFormation templates in YAML
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+  InstanceName:
+    Description: EC2 using CloudFormation
+    Type: String
+  InstanceType:
+    Type: String
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+      - m3.large
+    Default: 't2.micro'
+  InstanceTags:
+    Description: Type of the EC2 instance
+    Type: List<String>
+  DbName:
+    Type: String
+    Default: 'DemoDB'
+
+Conditions:
+  IsDev: !Equals [!Ref Env, "dev"]
+  IsQA: !Equals [!Ref Env, "qa"]
+  IsProd: !Equals [!Ref Env, "prod"]
+
+Resources: 
+  InstanceCFN:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: 'ami-02fe204d17e0189fb'
+      SecurityGroups:
+        - !Ref HttpAllowSG
+      Tags:
+        - Key: 'Name'
+          Value: !Ref InstanceName
+  
+  HttpAllowSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: allow-http-sg-demo
+      GroupDescription: allow trafic from Internet
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+  
+  DemoDb:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Ref DbName
+      DBInstanceClass: 'db.t2.micro'
+      Engine: mysql
+      MasterUsername: 'root'
+      MasterUserPassword: 'root1234'
+      MultiAZ: false
+      StorageType: gp2
+      AllocatedStorage: 10
+  
+  DBEndpoint:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Database endpoint
+      Name: !Sub "/db/${DbName}/fqdn"
+      Type: String
+      Value: !GetAtt DemoDb.Endpoint.Address
+      
+
+Outputs:
+  InstanceId:
+    Description: EC2 instance's Id 
+    Value: !Ref InstanceCFN
+    Export:
+      Name: EC2Endpoint
+  DBEndpoint:
+    Description: Endpoint to connect to RDS
+    Value: !GetAtt DemoDb.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-RdsEndpoint'

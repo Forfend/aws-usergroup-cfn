@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: EC2 example by StackSets
+
+Mappings:
+  AmiRegionMap:
+    eu-central-1:
+      'freeTier': 'ami-02fe204d17e0189fb'
+    eu-west-1:
+      'freeTier': 'ami-0766b4b472db7e3b9'
+
+Resources:
+  InstanceCFN:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: 't2.micro'
+      ImageId: !FindInMap [AmiRegionMap, !Ref 'AWS::Region', 'freeTier']
+      SecurityGroups:
+        - !Ref AllowTrafficSG
+      Tags:
+        - Key: 'Name'
+          Value: 'StackSetInstance'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemctl enable httpd
+          sudo echo 'Hello '$(hostname -f)'' > /var/www/html/index.html
+
+  AllowTrafficSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: allow-http-traffic
+      GroupDescription: allow traffic from Internet
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  InstanceId:
+    Value: !Ref InstanceCFN
+    Description: EC2 Instance by StackSets

@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Base VPC to be used by other stacks
+
+Resources:
+  MainVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: VPC-CFN
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      VpcId: !Ref MainVpc
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: public-subnet-a
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, !GetAZs "" ]
+      VpcId: !Ref MainVpc
+      CidrBlock: 10.0.32.0/20
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: public-subnet-b
+
+  InternetGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: IGW-CFN
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref MainVpc
+      InternetGatewayId: !Ref InternetGW
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MainVpc
+      Tags:
+        - Key: Name
+          Value: Public-RT-CFN
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGW
+
+  SubnetRTAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+  Subnet2RTAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+  
+  HttpAllowSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: allow-http
+      GroupDescription: allow trafic from Internet
+      VpcId: !Ref MainVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  SSHAllowSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: allow-ssh
+      GroupDescription: allow ssh to ec2
+      VpcId: !Ref MainVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  VpcId:
+    Description: Vpc Id
+    Value: !Ref MainVpc
+    Export:
+      Name: !Sub "${AWS::StackName}-VpcId"
+  PublicSubnetId:
+    Description: Public subnet id
+    Value: !Ref PublicSubnet
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnetId"
+  PublicSubnetId2:
+    Description: Public subnet 2 id
+    Value: !Ref PublicSubnet2
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnetId2"
+  HttpSG:
+    Description: HTTP allow SecurityGroup Id
+    Value: !GetAtt HttpAllowSG.GroupId
+    Export:
+      Name: !Sub "${AWS::StackName}-SecurityGroupId"
+  SSHSG:
+    Description: SSH allow SecurityGroup Id
+    Value: !GetAtt SSHAllowSG.GroupId
+    Export:
+      Name: !Sub "${AWS::StackName}-SSHSecurityGroupId"
+  
